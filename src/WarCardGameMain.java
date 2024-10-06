@@ -6,9 +6,9 @@ public class WarCardGameMain {
         WarEngine we = new WarEngine();
         we.buildDeck();
         // we.printDeck(we.getDeck());
-        we.dealCards(4);
-        we.play();
-        // we.test();
+        // we.dealCards(4);
+        // we.play();
+        we.test();
     }
     
 }
