@@ -1,147 +1,196 @@
+import java.util.List;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.Collections;
-import java.util.Comparator;
 
 public class WarEngine {
+    private static int roundCount = 0;
+    private static HashMap<String, Integer> statistics = new HashMap<>();
+    private static int gameCount = 0;
 
-    private record Player(ArrayList<Card> hand) {
+    private static record Player(ArrayList<Card> hand, int id) {
     }
 
-    private record CardPlayerSet(Card card, int playerSpot) {
-    }
+    private static ArrayList<Card> deck;
+    private static HashMap<Integer, Player> players;
+    private static String[] suits = { "Heart", "Diamond", "Spade", "Club" };
+    private static ArrayList<CardPlayerSet> table = new ArrayList<>();
+    private static ArrayList<Card> tempCardList = new ArrayList<>();
 
-    private ArrayList<Card> deck;
-    private ArrayList<Player> players;
-    private String[] suits = { "Heart", "Diamond", "Spade", "Club" };
-    private ArrayList<CardPlayerSet> table = new ArrayList<>();
-    private ArrayList<Card> tempCardList = new ArrayList<>();
-
-    public void buildDeck() {
-        System.out.println("Starting buildDeck()");
+    public static void buildDeck() {
+        // System.out.println("Starting buildDeck()");
         deck = new ArrayList<>();
-        // for (int i = 0; i < faceValues.length; i++) {
-        //     for (int j = 0; j < suits.length; j++) {
-        //         deck.add(new Card(faceValues[i], suits[j], i + 1));
-        //     }
-        // }
-        for(FaceValue fv : FaceValue.values()){
-            // System.out.println(fv.toString());
-            for(String suit : suits){
+        for (FaceValue fv : FaceValue.values()) {
+            for (String suit : suits) {
                 deck.add(new Card(suit, fv));
             }
         }
-        // deck.stream().forEach(c -> System.out.println(c.toString()));
         Collections.shuffle(deck);
     }
 
-    public void dealCards(int numberOfPlayers) {
-        System.out.println("Starting dealCards()");
-        players = new ArrayList<>();
+    public static void dealCards(int numberOfPlayers) {
+        // System.out.println("Starting dealCards()");
+        players = new HashMap<>();
         for (int i = 0; i < numberOfPlayers; i++) {
-            players.add(new Player(new ArrayList<>()));
+            players.put(i, new Player(new ArrayList<>(), i));
         }
         int i = 0;
         for (Card card : deck) {
             players.get(i % numberOfPlayers).hand.add(card);
             i++;
         }
-        // printDeck(players.get(0).hand);
     }
 
-    private void evaluateCards(ArrayList<CardPlayerSet> tbl) {
-        System.out.println("Starting evaluateCards()");
-        System.out.println(tbl.size());
-        tbl.stream()
-            // .sor
-            .forEach(c -> System.out.println(c.card.toString()));
-
-        //'original' logic
-        // ArrayList<CardPlayerSet> highCards = new ArrayList<>();
-        // for (CardPlayerSet cps : tbl) {
-        //     // if no high card has been set
-        //     if (highCards.size() == 0) {
-        //         highCards.add(cps);
-        //     } else {
-        //         // if cps has a higher rank than high card
-        //         if (cps.card.getRank() < highCards.get(0).card.getRank()) {
-        //             // remove card from highCards and add cps
-        //             highCards.clear();
-        //             highCards.add(cps);
-        //         }
-        //         // if cps has the same rank as high card
-        //         else if (cps.card.getRank() == highCards.get(0).card.getRank()) {
-        //             highCards.add(cps);
-        //         }
-        //     }
-        // }
-        // if(highCards.size()==1){
-        //     for(CardPlayerSet cps : tbl){
-        //         players.get(highCards.get(0).playerSpot).hand.add(cps.card);
-        //     }
-        // }
-        // if(highCards.size()>1){
-        //     System.out.println("WAR!!!");
-        //     //put the cards on the table into a temp list
-        //     for(CardPlayerSet cps : tbl){
-        //         tempCardList.add(cps.card);
-        //     }
-        //     ArrayList<Integer> warParticipants = new ArrayList<>();
-        //     for(CardPlayerSet cps : highCards){
-        //         warParticipants.add(cps.playerSpot);
-        //     }
-        // }
+    public static void displayStatistics(){
+        statistics.entrySet().stream()
+        .forEach(s->System.out.println("Player " + s.getKey() + " won " + s.getValue() + " times (" + displayWinPct(s.getValue()) + "%)"));
     }
 
-    public void play() {
-        System.out.println("Starting play()");
-        for (Player player : players) {
-            table.add(new CardPlayerSet(player.hand.get(0), players.indexOf(player)));
-            player.hand.remove(0);
+    private static void evaluateCards(ArrayList<CardPlayerSet> tbl) {
+        // System.out.println("Starting evaluateCards()");
+        // tbl.stream().forEach(cps -> System.out.println(cps.toString()));
+        tbl.stream().sorted(new CardPlayerSetComparator());
+        List<CardPlayerSet> filtered = tbl.stream()
+                .filter(cps -> cps.card.getRank() == tbl.stream()
+                        .sorted(new CardPlayerSetComparator()).toList().get(0).getCardRank())
+                .toList();
+
+        if (filtered.size() > 1) {
+            tempCardList.addAll(tbl.stream().map(c -> c.card).toList());
+            tbl.clear();
+
+            List<Player> removeThese = players.values().stream().filter(p -> p.hand.size() == 0).toList();
+
+            List<Integer> removeTheseIds = removeThese.stream().map(r -> r.id).toList();
+            List<Integer> filteredIds = filtered.stream().map(c -> c.playerID).toList();
+            List<Integer> diff = new ArrayList<Integer>(filteredIds);
+            diff.removeAll(removeTheseIds);
+
+            if (diff.size() > 1) {
+                war(new ArrayList<>(diff));
+            }
+        } else {
+            tempCardList.addAll(tbl.stream().map(c -> c.card).toList());
+            tbl.clear();
+
+            players.get(filtered.get(0).playerID).hand.addAll(tempCardList);
+            tempCardList.clear();
         }
-        evaluateCards(table);
-        //clear the table for the next round
-        table = new ArrayList<>();
+        removePlayer();
     }
 
-    public void war(ArrayList<Integer> warParticipants){
-        /*
-         * I'm thinking of creating a new warTable list plus a down facing list (need a name),
-         * then deal a card into warTable and pass that table to the evaluate method
-         */
+    public static void play() {
+        boolean repeat = true;
+        roundCount = 1;
+        gameCount++;
+        // System.out.println("Starting play()");
+        while (repeat) {
+            // System.out.println("Hand count at beginning of play for round " + roundCount);
+            // players.entrySet().stream()
+            //         .forEach(p -> System.out.println("Player " + p.getKey() + ": " + p.getValue().hand.size()));
+
+            players.entrySet().stream().forEach(p -> {
+                table.add(new CardPlayerSet(p.getValue().hand.get(0), p.getValue().id));
+                p.getValue().hand.remove(0);
+            });
+
+            evaluateCards(table);
+
+            table = new ArrayList<>();
+            if (players.size() == 1) {
+                // System.out.println("Player " + players.entrySet().stream().findFirst().get().getKey() + " wins after " + roundCount + " rounds");
+                updateStatistics(players.entrySet().stream().findFirst().get().getKey().toString());
+                repeat = false;
+            }
+            // try {
+            //     Thread.sleep(1500);
+            // } catch (InterruptedException e) {
+            //     e.printStackTrace();
+            // }
+            roundCount++;
+            if(roundCount == 10000){
+                // System.out.println("It's a draw");
+                updateStatistics("Draw");
+                repeat = false;
+            }
+        }
+    }
+
+    private static void removePlayer() {
+        players.entrySet().removeIf(p -> p.getValue().hand.size() == 0);
+    }
+
+    private static void updateStatistics(String result){
+        if(!statistics.containsKey(result)){
+            statistics.put(result, 1);
+        } else {
+            statistics.put(result, statistics.get(result) + 1);
+        }
+    }
+
+    public static void war(ArrayList<Integer> warParticipants) {
+        // System.out.println("Starting war()");
+        // System.out.println("Starting a war between the following: " + warParticipants);
+
         ArrayList<CardPlayerSet> warTable = new ArrayList<>();
-        for(Integer i : warParticipants){
-            //need to add a check to make sure the player has at least 4 cards
-            for(int j = 0; j<3;j++){
+        for (Integer i : warParticipants) {
+
+            for (int j = 0; j < 3; j++) {
+                if (players.get(i).hand.size() == 1) {
+                    continue;
+                }
                 tempCardList.add(players.get(i).hand.get(0));
                 players.get(i).hand.remove(0);
             }
-            players.get(i).hand.get(0);
+            warTable.add(new CardPlayerSet(players.get(i).hand.get(0), i));
         }
     }
 
-    public void test() {
+    public static void test() {
         System.out.println("Starting test");
-        Card cardOne = deck.get(0);
-        Card cardTwo = deck.get(1);
-        System.out.println("Card 1: " + cardOne.toString());
-        System.out.println("Card 2: " + cardTwo.toString());
-        ArrayList<Card> temp = new ArrayList<>();
-        temp.add(cardOne);
-        temp.add(cardTwo);
-        Comparator comparator = new CardComparator();
-        temp.stream().sorted(comparator)
-        .forEach(c -> System.out.println(c.toString()));
+        /*
+         * stack the deck for 3 players
+         */
+        deck = new ArrayList<>();
+        // first two cards are the same to trigger a war
+        deck.add(new Card("Heart", FaceValue.KING));// this should be in player 0s hand at the end
+        deck.add(new Card("Diamond", FaceValue.KING));// this should be in player 0s hand at the end
+        deck.add(new Card("Diamond", FaceValue.TEN));// this should be in player 0s hand at the end
+        // next six cards don't matter
+        deck.add(new Card("TESTING 1", FaceValue.TWO));// this should be in player 0s hand at the end
+        deck.add(new Card("TESTING 2", FaceValue.THREE));// this should be in player 0s hand at the end
+        deck.add(new Card("TESTING 3", FaceValue.FOUR));
+        deck.add(new Card("TESTING 4", FaceValue.FIVE));// this should be in player 0s hand at the end
+        deck.add(new Card("TESTING 5", FaceValue.SIX));// this should be in player 0s hand at the end
+        deck.add(new Card("TESTING 6", FaceValue.SEVEN));
+        deck.add(new Card("TESTING 7", FaceValue.EIGHT));// this should be in player 0s hand at the end
+        deck.add(new Card("TESTING 8", FaceValue.NINE));// this should be in player 0s hand at the end
+        deck.add(new Card("TESTING 9", FaceValue.TEN));
+        // two different cards to pick a winner
+        deck.add(new Card("Spade", FaceValue.JACK));// this should be in player 0s hand at the end
+        deck.add(new Card("Heart", FaceValue.QUEEN));// this should be in player 0s hand at the end
+        deck.add(new Card("Diamond", FaceValue.ACE));
+
+        dealCards(3);
+        // for(Player player : players){
+        // System.out.println(player.hand);
+        // }
+
+        play();
     }
 
-    public void printDeck(ArrayList<Card> cards) {
+    public static void printDeck(ArrayList<Card> cards) {
         for (Card card : cards) {
             System.out.println(card);
         }
     }
 
-    public ArrayList<Card> getDeck() {
+    public static ArrayList<Card> getDeck() {
         return deck;
+    }
+
+    private static String displayWinPct(int wins){
+        return String.format("%.2f",(double)wins/(double)gameCount*100);
     }
 
 }

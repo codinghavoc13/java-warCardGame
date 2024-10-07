@@ -28,4 +28,8 @@ public enum FaceValue {
     public String toString(){
         return this.face + " " + this.rank;
     }
+
+    public String getFace(){
+        return this.face;
+    }
 }
