@@ -1,3 +1,4 @@
+package com.codinghavoc.warcardgame;
 public class Card {
     // private String faceValue;
     private String suit;

@@ -1,3 +1,4 @@
+package com.codinghavoc.warcardgame;
 import java.util.Comparator;
 
 public class CardComparator implements Comparator<Card>{

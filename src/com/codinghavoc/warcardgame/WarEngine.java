@@ -1,8 +1,13 @@
+package com.codinghavoc.warcardgame;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Collections;
 
+/*TODO Consider converting the stream calls to parallelStreams in some cases, especially
+ * if I want to expand the program to allow for large number of players and multiple
+ * decks of cards
+ */
 public class WarEngine {
     private static int roundCount = 0;
     private static HashMap<String, Integer> statistics = new HashMap<>();
@@ -11,6 +16,10 @@ public class WarEngine {
     private static record Player(ArrayList<Card> hand, int id) {
     }
 
+    /*
+     * Look into converting deck/table/tempCardList and anything else
+     * that store cards or cardplayersets into a Queue to keep cards in order
+     */
     private static ArrayList<Card> deck;
     private static HashMap<Integer, Player> players;
     private static String[] suits = { "Heart", "Diamond", "Spade", "Club" };

@@ -1,3 +1,4 @@
+package com.codinghavoc.warcardgame;
 public enum FaceValue {
     ACE(1,"Ace"),
     KING(2,"King"),

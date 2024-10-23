@@ -1,3 +1,4 @@
+package com.codinghavoc.warcardgame;
 public class CardPlayerSet {
     public Card card;
     public int playerID;

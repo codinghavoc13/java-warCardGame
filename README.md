@@ -6,6 +6,10 @@ This is mostly just a personal side project that I wanted to try. As with a lot 
 
 For those who haven't heard of it, War is a simple card game where all of the cards in a deck are dealt out to all players face down so no one knows what card is coming next. Everyone plays a card from the top of their stack by laying it down, face up. The highest card, 2 is the lowest, Ace the highest, takes all cards and adds to the bottom of their stack.
 
-The name War comes in when two or more players have the same card, they go to war with each other. You lay three cards down, face down, then one face up. You keep going until one player has the high card (yes, I've played a few games where this was repeated).
+The name War comes in when two or more players have the same card, they go to war with each other. You lay three cards down, face down, then one face up. You keep going until one player has the high card (yes, I've played a few games where this was repeated). I have found recently some versions of this game where only one card is placed face down instead of 3.
 
 If you run out of cards, you are out. You play until only one player remains.
+
+## Current version of the code
+
+Currently the program will build a deck of 52 cards and shuffle them. I set the code to deal to four players, then the program will play out a game until there is one winner.
